@@ -144,4 +144,177 @@
     const appSection = document.getElementById("appSection");
     const authTitle = document.getElementById("authTitle");
     const authHint = document.getElementById("authHint");
-    const
+    const authUsername = document.getElementById("authUsername");
+    const authPassword = document.getElementById("authPassword");
+    const currentUserLabel = document.getElementById("currentUserLabel");
+    const roleBadge = document.getElementById("roleBadge");
+    const workersTableBody = document.getElementById("workersTableBody");
+    const workersCount = document.getElementById("workersCount");
+
+    function setStatus(text, type = "") {
+      statusEl.textContent = text;
+      statusEl.className = "status " + type;
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function renderAuthState() {
+      if (currentUser) {
+        authSection.classList.add("hidden");
+        appSection.classList.remove("hidden");
+        currentUserLabel.textContent = currentUser.username;
+        roleBadge.textContent = currentUser.role === "admin" ? "(مدير)" : "(مستخدم)";
+        renderWorkers();
+      } else {
+        appSection.classList.add("hidden");
+        authSection.classList.remove("hidden");
+        if (usersCache.length === 0) {
+          authTitle.textContent = "إنشاء حساب المدير الأول";
+          authHint.textContent = "لا يوجد حساب مسجّل في السحابة بعد؛ إنشاء أول حساب سيجعله مديراً تلقائياً ويحفظه في مجموعة users.";
+        } else {
+          authTitle.textContent = "تسجيل الدخول";
+          authHint.textContent = "سجّل الدخول بحسابك المسجّل في السحابة.";
+        }
+      }
+    }
+
+    function renderWorkers() {
+      workersCount.textContent = workersCache.length;
+      workersTableBody.innerHTML = "";
+      if (workersCache.length === 0) {
+        workersTableBody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#64748b;">لا توجد سجلات عمال بعد</td></tr>`;
+        return;
+      }
+      workersCache.forEach((w) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escapeHtml(w.name || "")}</td>
+          <td>${escapeHtml(w.nationalId || "")}</td>
+          <td>${escapeHtml(w.role || "")}</td>
+          <td>${escapeHtml(w.startDate || "")}</td>
+          <td>${escapeHtml(w.status || "")}</td>
+          <td><button class="danger" type="button" data-id="${escapeHtml(w.id)}">حذف</button></td>
+        `;
+        tr.querySelector("button").addEventListener("click", async () => {
+          try {
+            await deleteDoc(doc(db, "workers", w.id));
+            setStatus("تم حذف السجل ومزامنته مع السحابة.", "ok");
+          } catch (err) {
+            setStatus("تعذّر الحذف من السحابة: " + err.message, "err");
+          }
+        });
+        workersTableBody.appendChild(tr);
+      });
+    }
+
+    // الاستماع اللحظي لمجموعة users
+    onSnapshot(usersCol, { includeMetadataChanges: true }, (snap) => {
+      usersCache = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      const sourceLabel = snap.metadata.fromCache ? " (ذاكرة محلية — بانتظار مزامنة الخادم)" : " (متصل بالخادم السحابي)";
+      setStatus("متصل بـ Firestore — مزامنة لحظية مفعّلة" + sourceLabel, "ok");
+      renderAuthState();
+    }, (err) => {
+      setStatus("خطأ في الاتصال بـ Firestore (users): " + err.message, "err");
+    });
+
+    // الاستماع اللحظي لمجموعة workers
+    onSnapshot(workersCol, (snap) => {
+      workersCache = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      renderWorkers();
+    }, (err) => {
+      setStatus("خطأ في قراءة العمال من Firestore: " + err.message, "err");
+    });
+
+    // إنشاء حساب جديد وحفظه في مجموعة users
+    document.getElementById("registerBtn").addEventListener("click", async () => {
+      const username = authUsername.value.trim();
+      const password = authPassword.value;
+      if (!username || !password) {
+        setStatus("يرجى إدخال اسم المستخدم وكلمة المرور.", "err");
+        return;
+      }
+      const exists = usersCache.some((u) => u.username === username);
+      if (exists) {
+        setStatus("اسم المستخدم موجود بالفعل، استخدم تسجيل الدخول.", "err");
+        return;
+      }
+      const role = usersCache.length === 0 ? "admin" : "user";
+      const docId = encodeURIComponent(username);
+      try {
+        await setDoc(doc(db, "users", docId), {
+          username,
+          password,
+          role,
+          createdAt: new Date().toISOString()
+        });
+        currentUser = { username, role };
+        sessionStorage.setItem("activeContractUser", JSON.stringify(currentUser));
+        setStatus("تم إنشاء الحساب وحفظه في مجموعة users بـ Firestore.", "ok");
+        renderAuthState();
+      } catch (err) {
+        setStatus("تعذّر حفظ الحساب في السحابة: " + err.message, "err");
+      }
+    });
+
+    // تسجيل الدخول
+    document.getElementById("loginBtn").addEventListener("click", () => {
+      const username = authUsername.value.trim();
+      const password = authPassword.value;
+      const found = usersCache.find((u) => u.username === username && u.password === password);
+      if (!found) {
+        setStatus("بيانات الدخول غير صحيحة أو الحساب غير موجود.", "err");
+        return;
+      }
+      currentUser = { username: found.username, role: found.role || "user" };
+      sessionStorage.setItem("activeContractUser", JSON.stringify(currentUser));
+      setStatus("تم تسجيل الدخول بنجاح.", "ok");
+      renderAuthState();
+    });
+
+    // تسجيل الخروج
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      currentUser = null;
+      sessionStorage.removeItem("activeContractUser");
+      authUsername.value = "";
+      authPassword.value = "";
+      renderAuthState();
+    });
+
+    // إضافة عامل جديد وحفظه في مجموعة workers
+    document.getElementById("workerForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = document.getElementById("workerName").value.trim();
+      const nationalId = document.getElementById("workerNationalId").value.trim();
+      const role = document.getElementById("workerRole").value.trim();
+      const startDate = document.getElementById("workerStartDate").value;
+      const status = document.getElementById("workerStatus").value;
+      if (!name || !nationalId || !role || !startDate) return;
+
+      const id = nationalId + "_" + Date.now();
+      try {
+        await setDoc(doc(db, "workers", id), {
+          name,
+          nationalId,
+          role,
+          startDate,
+          status,
+          createdBy: currentUser?.username || "unknown",
+          updatedAt: new Date().toISOString()
+        });
+        e.target.reset();
+        setStatus("تم حفظ العامل في مجموعة workers بـ Firestore.", "ok");
+      } catch (err) {
+        setStatus("تعذّر حفظ العامل في السحابة: " + err.message, "err");
+      }
+    });
+
+    renderAuthState();
+  </script>
+</body>
+</html>
