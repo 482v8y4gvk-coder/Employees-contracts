@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0f766e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="عقود العمال">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<title>متابعة عقود العمال</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef3f4;--card:#fff;--ink:#14212b;--mute:#5b6b76;--line:#d5dee2;--acc:#0f766e;--accfg:#fff;--ok:#15803d;--okbg:#dcf3e4;--warn:#92400e;--warnbg:#fde9c4;--bad:#b91c1c;--badbg:#fbdcdc;color-scheme:light;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e171c;--card:#16232a;--ink:#e6eef1;--mute:#93a5ae;--line:#27383f;--acc:#2dd4bf;--accfg:#06201d;--ok:#6ee7a0;--okbg:#143324;--warn:#fbbf6a;--warnbg:#3a2a0e;--bad:#fca5a5;--badbg:#3d1717;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e171c;--card:#16232a;--ink:#e6eef1;--mute:#93a5ae;--line:#27383f;--acc:#2dd4bf;--accfg:#06201d;--ok:#6ee7a0;--okbg:#143324;--warn:#fbbf6a;--warnbg:#3a2a0e;--bad:#fca5a5;--badbg:#3d1717;color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.6 "IBM Plex Sans Arabic",Tahoma,Arial,sans-serif;padding-bottom:84px}
+main{max-width:640px;margin:0 auto;padding:20px 16px}
+h1{font-size:26px;margin:4px 0 2px;font-weight:700}
+h2{font-size:18px;margin:24px 0 10px;font-weight:700}
+.sub{color:var(--mute);margin:0 0 18px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}
+.stat b{display:block;font-size:30px;line-height:1.2}
+.stat span{font-size:14px;color:var(--mute)}
+.stat.ok b{color:var(--ok)}.stat.warn b{color:var(--warn)}.stat.bad b{color:var(--bad)}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+button{font:inherit;cursor:pointer;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:14px 16px;min-height:48px}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.primary{background:var(--acc);color:var(--accfg);border-color:var(--acc);font-weight:700}
+.danger{color:var(--bad);border-color:var(--bad);font-weight:700}
+.alert{background:var(--warnbg);color:var(--warn);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;gap:10px}
+.alert.bad{background:var(--badbg);color:var(--bad)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.head strong{font-size:18px}
+.badge{font-size:13px;font-weight:700;border-radius:99px;padding:2px 12px;white-space:nowrap}
+.badge.ok{background:var(--okbg);color:var(--ok)}.badge.warn{background:var(--warnbg);color:var(--warn)}.badge.bad{background:var(--badbg);color:var(--bad)}
+dl{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin:0}
+dt{font-size:13px;color:var(--mute)}dd{margin:0;font-weight:500}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border:0}
+.empty{text-align:center;color:var(--mute);padding:28px 8px}
+nav{position:fixed;inset:auto 0 0 0;background:var(--card);border-top:1px solid var(--line);display:flex;padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));gap:6px}
+nav button{flex:1;border:0;background:none;border-radius:10px;font-weight:500;color:var(--mute)}
+nav button[aria-current="true"]{background:var(--acc);color:var(--accfg);font-weight:700}
+dialog{border:1px solid var(--line);border-radius:16px;background:var(--card);color:var(--ink);width:min(92vw,460px);padding:18px}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+label{display:block;font-size:14px;color:var(--mute);margin:12px 0 4px}
+input,select{width:100%;font:inherit;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);min-height:46px}
+.err{color:var(--bad);font-size:14px;min-height:20px;margin-top:8px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.chip{padding:8px 14px;min-height:40px;border-radius:99px;font-size:15px}.chip[aria-pressed="true"]{background:var(--acc);color:var(--accfg);border-color:var(--acc);font-weight:700}.pick{width:100%;text-align:right;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.chk{display:flex;align-items:center;gap:8px;margin-top:8px;color:var(--ink);font-size:15px}.chk input{width:22px;min-height:22px;height:22px}.nid{direction:ltr;text-align:right;letter-spacing:1px}
+:root{--accbg:#d6efec}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--accbg:#123a36}}:root[data-theme="dark"]{--accbg:#123a36}.stats{grid-template-columns:repeat(2,1fr)}.stat.perm b{color:var(--acc)}.stat.term b{color:var(--mute)}.badge.perm{background:var(--accbg);color:var(--acc)}.badge.term{background:var(--line);color:var(--mute)}.hist{margin:12px 0 0;padding:0;list-style:none;font-size:15px}.hist li{padding:6px 0;border-top:1px solid var(--line)}.note{background:var(--accbg);color:var(--acc);border-radius:10px;padding:8px 12px;margin-top:10px;font-size:15px}.hint{font-size:13px;color:var(--mute);margin-top:4px}.full{grid-column:1/-1}.stack{display:grid;gap:10px;margin-top:12px}
+nav[hidden]{display:none}.auth{margin-top:8vh}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<nav>
+<button data-v="home">الرئيسية</button>
+<button data-v="status">حالة العمال</button>
+<button data-v="list">صفحة العامل</button>
+<button data-v="users" hidden>المستخدمون</button>
+</nav>
+
+<dialog id="addDlg" class="ent">
+<h2 style="margin-top:0" id="fTitle">إضافة عامل</h2>
+<label for="fName">اسم العامل</label><input id="fName" autocomplete="off">
+<label for="fNid">الرقم القومي (14 رقماً)</label><input id="fNid" class="nid" inputmode="numeric" maxlength="14" autocomplete="off">
+<label for="fStart">تاريخ بداية العقد</label><input id="fStart" type="date">
+<label for="fDur">مدد العقود بالأشهر (مثال: 12,12,12)</label><input id="fDur" value="12" autocomplete="off"><div class="hint">العقد الأول ثم التجديدات بالترتيب. كل مدة تبدأ تلقائياً بعد انتهاء التي قبلها.</div>
+<label for="fIns">تاريخ التسجيل في التأمينات (اختياري)</label><input id="fIns" type="date">
+<label class="chk"><input type="checkbox" id="fNoIns" checked> لم يسجل بعد</label>
+<label for="fAlert">الإنذار قبل انتهاء العقد (بالأيام)</label><input id="fAlert" type="number" min="1" inputmode="numeric" value="30">
+<div class="err" id="fErr" role="alert"></div>
+<div class="two"><button class="primary" id="saveBtn">حفظ</button><button id="cancelAdd">إلغاء</button></div>
+</dialog>
+
+<dialog id="termDlg" class="ent">
+<h2 style="margin-top:0" id="tTitle">إنهاء عقد العامل</h2>
+<label for="tDate">تاريخ فسخ العقد</label><input id="tDate" type="date">
+<label for="tIns">تاريخ الإخراج من التأمينات (اختياري)</label><input id="tIns" type="date">
+<div class="hint">تقدر تضيف تاريخ الإخراج لاحقاً من صفحة العامل.</div>
+<div class="err" id="tErr" role="alert"></div>
+<div class="stack"><button class="primary" id="tSave">حفظ</button><button class="danger" id="tUndo" hidden>إلغاء إنهاء العقد</button><button data-close="termDlg">إغلاق</button></div>
+</dialog>
+
+<dialog id="delDlg" class="ent">
+<h2 style="margin-top:0">حذف عامل</h2>
+<input id="dq" type="search" placeholder="ابحث بالاسم أو الرقم القومي" autocomplete="off">
+<div id="delList" style="margin-top:10px;max-height:50vh;overflow:auto"></div>
+<div class="two" style="grid-template-columns:1fr"><button data-close="delDlg">إغلاق</button></div>
+</dialog>
+
+<dialog id="pwDlg" class="ent">
+<h2 style="margin-top:0" id="pwT">تأكيد كلمة المرور</h2>
+<p class="sub" id="pwX"></p>
+<label for="pwIn">كلمة المرور</label><input id="pwIn" type="password" autocomplete="current-password">
+<div class="err" id="pwErr" role="alert"></div>
+<div class="two"><button class="primary" id="pwOk">تأكيد</button><button data-close="pwDlg">إلغاء</button></div>
+</dialog>
+
+<dialog id="usrDlg" class="ent">
+<h2 style="margin-top:0" id="uTitle">إضافة مستخدم</h2>
+<label for="uName">الاسم</label><input id="uName" autocomplete="off">
+<label for="uUser">اسم المستخدم (إنجليزي بدون مسافات)</label><input id="uUser" class="nid" autocomplete="off" autocapitalize="none">
+<label for="uPass" id="uPassL">كلمة المرور (6 أحرف على الأقل)</label><input id="uPass" type="password" autocomplete="new-password">
+<label for="uRole">الصلاحية</label>
+<select id="uRole"><option value="viewer">مشاهد (عرض وبحث فقط)</option><option value="editor">مُدخل بيانات (بدون حذف)</option><option value="admin">مدير (كل الصلاحيات)</option><option value="pending">بانتظار الموافقة (بدون وصول)</option></select>
+<div class="err" id="uErr" role="alert"></div>
+<div class="stack"><button class="primary" id="uSave">حفظ</button><button class="danger" id="uDel" hidden>حذف المستخدم</button><button data-close="usrDlg">إغلاق</button></div>
+</dialog>
+
+<input type="file" id="xl" accept=".xlsx,.xls,.csv" hidden>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  doc,
+  setDoc,
+  deleteDoc,
+  onSnapshot
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD1B5eJgwZRVefqbf3hUI8XWFa2t1al4LI",
+  authDomain: "employees-contracts.firebaseapp.com",
+  projectId: "employees-contracts",
+  storageBucket: "employees-contracts.firebasestorage.app",
+  messagingSenderId: "867164804787",
+  appId: "1:867164804787:web:76ced90364a403fb60c2c6",
+  measurementId: "G-XZE8SNVE0X"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const fsDb = getFirestore(fbApp);
+
+(function(){
+var KEY="workers-contracts-v1",UKEY="wc-users-v1",SKEY="wc-session",ITER=100000,mem={};
+var DB=fsDb,ready=false,slow=false,workers=[],users=[],uReady=false,wReady=false,me=null;
+var view="home",filter="all",sel=null,editId=null,q="",dq="",msg="",rId=null,renId=null,renVal="12",tId=null,uEdit=null,pwCb=null,authMode="login",authFirst=false,fails=0;
+var ROLES={admin:"مدير",editor:"مُدخل بيانات",viewer:"مشاهد",pending:"بانتظار الموافقة"},RCLS={admin:"perm",editor:"ok",viewer:"term",pending:"warn"};
+var H=["الاسم","الرقم القومي","تاريخ بداية العقد","مدد العقود بالأشهر","تاريخ التسجيل في التأمينات","أيام الإنذار","تاريخ فسخ العقد","تاريخ الإخراج من التأمينات","الحالة","تاريخ انتهاء العقد","سنوات العمل"];
+function $(id){return document.getElementById(id)}
+function lsGet(k){try{var r=localStorage.getItem(k);return r?JSON.parse(r):[]}catch(e){return mem[k]||[]}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){mem[k]=v}}
+function normW(w){if(!Array.isArray(w.renewals))w.renewals=[];w.months=+w.months;w.alert=+w.alert||30;w.renewals.forEach(function(r){r.months=+r.months});return w}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function norm(v){return String(v==null?"":v).replace(/[٠-٩]/g,function(d){return d.charCodeAt(0)-1632}).replace(/\s/g,"")}
+function nar(v){return String(v).toLowerCase().replace(/[أإآ]/g,"ا").replace(/ة/g,"ه").replace(/ى/g,"ي").trim()}
+function pd(s){var p=s.split("-");return new Date(+p[0],+p[1]-1,+p[2])}
+function iso(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function today(){var t=new Date();return new Date(t.getFullYear(),t.getMonth(),t.getDate())}
+function fmt(d){return (typeof d==="string"?pd(d):d).toLocaleDateString("ar-u-nu-latn",{year:"numeric",month:"long",day:"numeric"})}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function digits(v){return String(v==null?"":v).replace(/[٠-٩]/g,function(d){return d.charCodeAt(0)-1632})}
+function parseDurs(v){var p=digits(v).split(/[\s,،;؛|]+/).filter(Boolean);if(!p.length)return null;for(var i=0;i<p.length;i++){if(!/^\d+$/.test(p[i])||+p[i]<1)return null}return p.map(Number)}
+function addM(st,m){var d=pd(st),e=new Date(d.getFullYear(),d.getMonth()+m,d.getDate());if(e.getDate()!==d.getDate())e=new Date(d.getFullYear(),d.getMonth()+m+1,0);return iso(e)}
+function build(st,l){var o={months:l[0],renewals:[]},c=l[0];for(var k=1;k<l.length;k++){o.renewals.push({start:addM(st,c),months:l[k]});c+=l[k]}return o}
+function durList(w){return [w.months].concat(w.renewals.map(function(r){return r.months})).join(",")}
+function wait(ms){return new Promise(function(r){setTimeout(r,ms)})}
+
+/* ---- data layer: Firebase Cloud Firestore real-time sync ---- */
+var denied="تعذّر الحفظ في السحابة: تأكد من تفعيل صلاحيات الكتابة في قواعد Firestore (Rules).";
+function fail1(err){console.error(err);setMsg(denied)}
+function wSet(w){
+  var o=JSON.parse(JSON.stringify(w));
+  if(!byId(w.id))workers.push(w);
+  return setDoc(doc(DB,"workers",w.id),o).catch(fail1);
+}
+function wDel(id){
+  workers=workers.filter(function(w){return w.id!==id});
+  return deleteDoc(doc(DB,"workers",id)).catch(fail1);
+}
+function uSet(u){
+  var o=JSON.parse(JSON.stringify(u));
+  users=users.filter(function(x){return x.username!==u.username}).concat([u]);
+  return setDoc(doc(DB,"users",u.username),o).catch(fail1);
+}
+function uDel(un){
+  users=users.filter(function(x){return x.username!==un});
+  return deleteDoc(doc(DB,"users",un)).catch(fail1);
+}
+function startDb(){
+  onSnapshot(collection(DB,"users"),function(s){
+    users=s.docs.map(function(d){return d.data()});
+    uReady=true;
+    sync();
+  },function(err){console.error(err);slow=true;render()});
+
+  onSnapshot(collection(DB,"workers"),function(s){
+    workers=s.docs.map(function(d){var w=d.data();w.id=d.id;return normW(w)});
+    wReady=true;
+    sync();
+  },function(err){console.error(err);slow=true;render()});
+}
+function sync(){ready=uReady&&wReady;
+if(!me){try{var u=sessionStorage.getItem(SKEY);if(u)me=users.filter(function(x){return x.username===u})[0]||null}catch(e){}}
+var a=document.activeElement;if(ready&&me&&a&&a.id==="rMonths")return;
+if(ready&&me&&view==="list"&&!sel&&a&&a.id==="q"){drawPick();return}
+render()}
+function init(){
+  setTimeout(function(){if(!ready){slow=true;render()}},10000);
+  startDb();
+}
+
+/* ---- passwords ---- */
+function b64(buf){return btoa(String.fromCharCode.apply(null,new Uint8Array(buf)))}
+function newSalt(){var a=new Uint8Array(16);crypto.getRandomValues(a);return b64(a)}
+function hashPw(pw,salt,it){var enc=new TextEncoder(),sb=Uint8Array.from(atob(salt),function(c){return c.charCodeAt(0)});
+return crypto.subtle.importKey("raw",enc.encode(pw),"PBKDF2",false,["deriveBits"]).then(function(k){return crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt:sb,iterations:it||ITER},k,256)}).then(b64)}
+function newUser(name,un,pw,role){var salt=newSalt();return hashPw(pw,salt,ITER).then(function(h){return{name:name,username:un,role:role,salt:salt,iter:ITER,hash:h}})}
+function can(p){var r=me&&me.role;if(r==="admin")return true;if(r==="editor")return p!=="del"&&p!=="users";return false}
+function setSess(u){try{sessionStorage.setItem(SKEY,u)}catch(e){}}
+function clrSess(){try{sessionStorage.removeItem(SKEY)}catch(e){}}
+
+/* ---- contract logic ---- */
+function cur(w){return w.renewals.length?w.renewals[w.renewals.length-1]:{start:w.start,months:w.months}}
+function endOf(c){var s=pd(c.start),e=new Date(s.getFullYear(),s.getMonth()+c.months,s.getDate());if(e.getDate()!==s.getDate())e=new Date(s.getFullYear(),s.getMonth()+c.months+1,0);e.setDate(e.getDate()-1);return e}
+function endDate(w){return endOf(cur(w))}
+function info(w){var t=today(),end=endDate(w),left=Math.round((end-t)/864e5);
+if(w.term)return{st:"term",label:"تم إنهاء العقد",left:left};
+var h=pd(w.start),five=t>=new Date(h.getFullYear()+5,h.getMonth(),h.getDate());
+if(five||left<0)return{st:"perm",label:"عقد دائم",why:five?"بلغ 5 سنوات عمل":"انتهت مدة العقد دون تجديد",five:five,left:left};
+return{st:left<=w.alert?"warn":"ok",label:left<=w.alert?"ينتهي قريباً":"ساري",left:left}}
+function years(w){var s=pd(w.start),t=w.term?pd(w.term):today();if(s>t)return "لم يبدأ بعد";var m=(t.getFullYear()-s.getFullYear())*12+t.getMonth()-s.getMonth();if(t.getDate()<s.getDate())m--;m=Math.max(m,0);var y=Math.floor(m/12),r=m%12,o=[];if(y)o.push(y===1?"سنة":y===2?"سنتان":y+(y>10?" سنة":" سنوات"));if(r)o.push(r===1?"شهر":r===2?"شهران":r+(r>10?" شهراً":" أشهر"));return o.length?o.join(" و"):"أقل من شهر"}
+function dur(m){var y=Math.floor(m/12),r=m%12,o=[];if(y)o.push(y===1?"سنة":y===2?"سنتان":y+" سنوات");if(r)o.push(r===1?"شهر":r===2?"شهران":r+" أشهر");return o.join(" و")+" ("+m+" شهر)"}
+function leftTxt(i){return i.left===0?"ينتهي اليوم":"باقي "+i.left+" يوم"}
+function sorted(){return workers.slice().sort(function(a,b){return endDate(a)-endDate(b)})}
+function byId(id){return workers.filter(function(w){return w.id===id})[0]}
+function subline(w,i){return i.st==="term"?"فُسخ العقد في "+fmt(w.term):i.st==="perm"?"عقد دائم · "+i.why:"ينتهي "+fmt(endDate(w))+" · "+leftTxt(i)}
+function rowBtn(w){var i=info(w);return '<button class="pick card" data-open="'+w.id+'"><span><strong>'+esc(w.name)+'</strong><span class="sub" style="display:block;margin:0;font-size:14px">'+subline(w,i)+'</span></span><span class="badge '+i.st+'">'+i.label+'</span></button>'}
+function setMsg(m){msg=m;render()}
+function match(w,t,n){return !t||nar(w.name).indexOf(t)>-1||(n&&w.nid.indexOf(n)>-1)}
+
+/* ---- screens ---- */
+function authView(mode){authMode=mode;authFirst=!users.length;var a=$("app"),reg=mode==="register"||authFirst;
+a.innerHTML='<div class="card auth ent"><h1>متابعة عقود العمال</h1>'
++(authFirst?'<p class="sub">أنشئ أول حساب. هذا الحساب يصبح مديراً للبرنامج.</p>':'<div class="chips" style="margin:6px 0 14px"><button class="chip" data-auth="login" aria-pressed="'+!reg+'">تسجيل الدخول</button><button class="chip" data-auth="register" aria-pressed="'+reg+'">إنشاء حساب</button></div>')
++(reg?'<label for="aName">الاسم</label><input id="aName" autocomplete="off">':'')
++'<label for="aUser">اسم المستخدم (إنجليزي)</label><input id="aUser" class="nid" autocomplete="username" autocapitalize="none">'
++'<label for="aPass">كلمة المرور</label><input id="aPass" type="password" autocomplete="'+(reg?"new-password":"current-password")+'">'
++(reg?'<label for="aPass2">تأكيد كلمة المرور</label><input id="aPass2" type="password" autocomplete="new-password">':'')
++(reg&&!authFirst?'<div class="hint">الحسابات الجديدة تحتاج موافقة المدير قبل الدخول.</div>':'')
++'<div class="err" id="aErr" role="alert"></div><button class="primary" id="aGo" style="width:100%;margin-top:6px">'+(reg?"إنشاء الحساب":"دخول")+'</button></div>';
+hints(a);var f=a.querySelector("input");if(f)f.focus()}
+function doLogin(){var un=$("aUser").value.trim().toLowerCase(),pw=$("aPass").value,u=users.filter(function(x){return x.username===un})[0];
+if(!un||!pw)return $("aErr").textContent="اكتب اسم المستخدم وكلمة المرور.";
+$("aErr").textContent="";
+wait(fails*600).then(function(){return u?hashPw(pw,u.salt,u.iter):null}).then(function(h){
+if(u&&h===u.hash){fails=0;me=u;setSess(un);view="home";render();window.scrollTo(0,0)}else{fails++;$("aErr").textContent="اسم المستخدم أو كلمة المرور غير صحيحة."}
+}).catch(function(){$("aErr").textContent="المتصفح لا يدعم التشفير المطلوب."})}
+function doRegister(){var n=$("aName").value.trim(),un=$("aUser").value.trim().toLowerCase(),p1=$("aPass").value,p2=$("aPass2").value,e=$("aErr"),first=!users.length;
+if(!n)return e.textContent="اكتب الاسم.";
+if(!/^[a-z0-9_.-]{3,20}$/.test(un))return e.textContent="اسم المستخدم: 3 إلى 20 حرفاً إنجليزياً أو أرقاماً بدون مسافات.";
+if(users.some(function(x){return x.username===un}))return e.textContent="اسم المستخدم مستخدم من قبل.";
+if(p1.length<6)return e.textContent="كلمة المرور 6 أحرف على الأقل.";
+if(p1!==p2)return e.textContent="كلمتا المرور غير متطابقتين.";
+newUser(n,un,p1,first?"admin":"pending").then(function(u){return uSet(u).then(function(){
+if(first){me=u;setSess(un);if(!workers.length){lsGet(KEY).forEach(function(w){wSet(normW(w))})}view="home";render()}
+else{authView("login");var x=$("aErr");x.textContent="تم إنشاء الحساب. بعد موافقة المدير تقدر تسجّل الدخول من أي جهاز.";x.style.color="var(--ok)"}})}).catch(function(){e.textContent="المتصفح لا يدعم التشفير المطلوب."})}
+function hints(box){var f=fields(box);f.forEach(function(x,i){x.enterKeyHint=i<f.length-1?"next":"done"})}
+function fields(box){return [].slice.call(box.querySelectorAll("input:not([type=checkbox]):not([type=file]):not(:disabled),select")).filter(function(x){return !x.hidden&&x.offsetParent!==null})}
+function openDlg(id){var d=$(id);d.showModal();hints(d)}
+
+function render(){
+var a=$("app"),nav=document.querySelector("nav");
+if(!ready){nav.hidden=true;a.innerHTML='<div class="empty">'+(slow?"تعذّر الوصول إلى السحابة حتى الآن. تأكد من الاتصال بالإنترنت ومن قواعد Firestore (Rules).":"جارٍ الاتصال بالسحابة وتحميل البيانات…")+'</div>';return}
+if(me){var cu=me.username;me=users.filter(function(u){return u.username===cu})[0]||null;if(!me)clrSess()}
+if(!users.length){nav.hidden=true;if(!$("aPass2")||!authFirst)authView("register");return}
+if(!me){nav.hidden=true;if(!$("aGo")||authFirst)authView(authMode==="register"?"register":"login");return}
+if(me.role==="pending"){nav.hidden=true;a.innerHTML='<div class="card auth"><h1>بانتظار الموافقة</h1><p class="sub">تم إنشاء حسابك «'+esc(me.name)+'». سيمنحك المدير صلاحية الدخول، وبعدها يفتح لك البرنامج هنا تلقائياً من أي جهاز.</p><button id="outBtn" style="width:100%">تسجيل الخروج</button></div>';return}
+nav.hidden=false;
+if(view==="users"&&!can("users"))view="home";
+document.querySelectorAll("nav button").forEach(function(b){b.setAttribute("aria-current",b.dataset.v===view);if(b.dataset.v==="users")b.hidden=!can("users")});
+var h="",L=sorted(),c={ok:0,warn:0,perm:0,term:0};L.forEach(function(w){c[info(w).st]++});
+if(view==="home"){
+h+='<div class="head"><h1>متابعة العقود</h1><button id="outBtn">خروج</button></div><p class="sub">مرحباً، '+esc(me.name)+' · <span class="badge '+RCLS[me.role]+'">'+ROLES[me.role]+'</span> · '+workers.length+' عامل</p>';
+h+='<div class="stats"><div class="stat ok"><b>'+c.ok+'</b><span>ساري</span></div><div class="stat warn"><b>'+c.warn+'</b><span>ينتهي قريباً</span></div><div class="stat perm"><b>'+c.perm+'</b><span>عقود دائمة</span></div><div class="stat term"><b>'+c.term+'</b><span>تم إنهاء عقودهم</span></div></div>';
+var ac="";
+if(can("add"))ac+='<button class="primary" id="addBtn">إضافة عامل</button>';
+if(can("del"))ac+='<button class="danger" id="delBtn">حذف عامل</button>';
+if(can("imp"))ac+='<button id="impBtn">استيراد من Excel</button>';
+if(can("exp"))ac+='<button id="expBtn">تصدير إلى Excel</button>';
+if(can("imp"))ac+='<button class="full" id="tplBtn">تحميل نموذج Excel فارغ</button>';
+if(ac)h+='<div class="actions">'+ac+'</div>';
+
+var pn=users.filter(function(u){return u.role==="pending"}).length;
+if(can("users")&&pn)h+='<button class="alert pick" data-go="users"><strong>طلبات حسابات جديدة</strong><span>'+pn+' بانتظار موافقتك</span></button>';
+var al=L.filter(function(w){return info(w).st==="warn"});
+h+='<h2>عقود تنتهي قريباً</h2>';
+if(!al.length)h+='<div class="empty">لا توجد عقود تحتاج انتباهاً الآن.</div>';
+al.forEach(function(w){var i=info(w);h+='<button class="alert pick" data-open="'+w.id+'"><strong>'+esc(w.name)+'</strong><span>'+leftTxt(i)+'</span></button>'});
+}
+if(view==="status"){
+h+='<h1>حالة العمال</h1><p class="sub">اختر الحالة، واضغط على العامل لفتح صفحته</p><div class="chips">';
+[["all","الكل",workers.length],["ok","ساري",c.ok],["warn","ينتهي قريباً",c.warn],["perm","عقود دائمة",c.perm],["term","تم إنهاء عقودهم",c.term]].forEach(function(f){h+='<button class="chip" data-f="'+f[0]+'" aria-pressed="'+(filter===f[0])+'">'+f[1]+' ('+f[2]+')</button>'});
+h+='</div>';
+var items=L.filter(function(w){return filter==="all"||info(w).st===filter});
+if(!items.length)h+='<div class="empty">'+(workers.length?"لا يوجد عمال بهذه الحالة.":"لم تضف أي عامل بعد.")+'</div>';
+items.forEach(function(w){h+=rowBtn(w)});
+}
+if(view==="users"){
+h+='<h1>المستخدمون</h1><p class="sub">أضف مستخدمين وحدد صلاحية كل واحد</p><button class="primary" id="uAdd" style="width:100%;margin-bottom:12px">إضافة مستخدم</button>';
+users.slice().sort(function(a,b){return a.name.localeCompare(b.name,"ar")}).forEach(function(u){h+='<button class="pick card" data-uedit="'+esc(u.username)+'"><span><strong>'+esc(u.name)+'</strong><span class="sub" style="display:block;margin:0;font-size:14px;direction:ltr;text-align:right">@'+esc(u.username)+'</span></span><span class="badge '+RCLS[u.role]+'">'+ROLES[u.role]+'</span></button>'});
+h+='<div class="note">المدير: كل الصلاحيات والحذف وإدارة المستخدمين. مُدخل البيانات: إضافة وتعديل وتجديد وإنهاء واستيراد وتصدير بدون حذف. المشاهد: عرض وبحث فقط.</div>';
+}
+if(view==="list"){
+var w=sel&&byId(sel);
+if(!w){
+h+='<h1>صفحة العامل</h1><p class="sub">ابحث أو اختر العامل لعرض بياناته</p><input id="q" type="search" placeholder="ابحث بالاسم أو الرقم القومي" autocomplete="off" value="'+esc(q)+'" style="margin-bottom:14px"><div id="pl"></div>';
+}else{
+var i=info(w),c0=cur(w),end=endDate(w);
+h+='<button data-back="1" style="margin-bottom:12px">رجوع لقائمة العمال</button>';
+h+='<div class="card"><div class="head"><strong style="font-size:22px">'+esc(w.name)+'</strong><span class="badge '+i.st+'">'+i.label+'</span></div><dl>'
++'<div><dt>الرقم القومي</dt><dd style="direction:ltr;text-align:right">'+esc(w.nid)+'</dd></div>'
++'<div><dt>تاريخ العقد الأول</dt><dd>'+fmt(w.start)+'</dd></div>'
++'<div><dt>مدة العقد الحالي</dt><dd>'+dur(c0.months)+'</dd></div>'
++'<div><dt>تاريخ انتهاء العقد</dt><dd>'+(i.st==="perm"?"مفتوح المدة (دائم)":fmt(end))+'</dd></div>'
++'<div><dt>التسجيل في التأمينات</dt><dd>'+(w.ins?fmt(w.ins):"لم يسجل بعد")+'</dd></div>'
++'<div><dt>سنوات العمل</dt><dd>'+years(w)+'</dd></div>'
++((i.st==="ok"||i.st==="warn")?'<div><dt>إنذار قبل الانتهاء</dt><dd>'+w.alert+' يوم</dd></div><div><dt>المتبقي من العقد</dt><dd>'+leftTxt(i)+'</dd></div>':'')
++(i.st==="term"?'<div><dt>تاريخ فسخ العقد</dt><dd>'+fmt(w.term)+'</dd></div><div><dt>الإخراج من التأمينات</dt><dd>'+(w.insOut?fmt(w.insOut):"لم يُسجَّل بعد")+'</dd></div>':'')
++'</dl>'+(i.st==="perm"?'<div class="note">عقد دائم: '+i.why+'. لا يحتاج تجديداً.</div>':'');
+if(w.renewals.length){h+='<ul class="hist">';w.renewals.forEach(function(r,k){h+='<li>تجديد '+(k+1)+': من '+fmt(r.start)+' لمدة '+dur(r.months)+'</li>'});h+='</ul>'}
+h+='</div><div class="stack">';
+if(can("ren")&&(i.st==="ok"||i.st==="warn")){if(renId===w.id)h+=renPanel();else h+='<button class="primary" data-ren="'+w.id+'">تجديد العقد</button>'}
+if(can("edit"))h+='<button data-edit="'+w.id+'">تعديل بيانات العامل</button>';
+if(can("term"))h+=i.st==="term"?'<button data-term="'+w.id+'">تعديل بيانات إنهاء العقد</button>':'<button class="danger" data-term="'+w.id+'">إنهاء عقد العامل</button>';
+h+='</div>';
+}}
+a.innerHTML=(msg?'<div class="note" role="status">'+esc(msg)+'</div>':'')+h;
+if(view==="list"&&!(sel&&byId(sel)))drawPick();
+}
+function drawPick(){var t=nar(q),n=norm(q),L=workers.slice().sort(function(a,b){return a.name.localeCompare(b.name,"ar")}).filter(function(w){return match(w,t,n)});
+if($("pl"))$("pl").innerHTML=L.length?L.map(rowBtn).join(""):'<div class="empty">'+(workers.length?"لا توجد نتائج مطابقة للبحث.":"لا يوجد عمال بعد.")+'</div>'}
+
+/* ---- worker forms ---- */
+function syncIns(){$("fIns").disabled=$("fNoIns").checked;if($("fNoIns").checked)$("fIns").value=""}
+$("fNoIns").onchange=function(){syncIns();hints($("addDlg"))};
+$("fIns").onchange=function(){if(this.value)$("fNoIns").checked=false};
+function openForm(id){if(!can(id?"edit":"add"))return;editId=id||null;var w=id?byId(id):null;
+$("fTitle").textContent=w?"تعديل بيانات العامل":"إضافة عامل";
+$("fName").value=w?w.name:"";$("fNid").value=w?w.nid:"";$("fStart").value=w?w.start:iso(today());
+$("fDur").value=w?durList(w):"12";$("fAlert").value=w?w.alert:30;
+$("fNoIns").checked=w?!w.ins:true;$("fIns").value=w&&w.ins?w.ins:"";syncIns();
+$("fErr").textContent="";openDlg("addDlg")}
+$("saveBtn").onclick=function(){
+var n=$("fName").value.trim(),nid=norm($("fNid").value),s=$("fStart").value,ds=parseDurs($("fDur").value),al=parseInt($("fAlert").value,10),ins=$("fNoIns").checked?"":$("fIns").value,e=$("fErr");
+if(!n)return e.textContent="اكتب اسم العامل.";
+if(!/^\d{14}$/.test(nid))return e.textContent="الرقم القومي لازم يكون 14 رقماً.";
+if(workers.some(function(w){return w.nid===nid&&w.id!==editId}))return e.textContent="هذا الرقم القومي مسجّل لعامل آخر.";
+if(!s)return e.textContent="اختر تاريخ بداية العقد.";
+if(!ds)return e.textContent="اكتب مدد العقود بالأشهر، مثل 12 أو 12,12,12.";
+if(!$("fNoIns").checked&&!ins)return e.textContent="اختر تاريخ التسجيل أو علّم «لم يسجل بعد».";
+if(!(al>0))return e.textContent="أدخل عدد أيام الإنذار.";
+var b=build(s,ds),d={name:n,nid:nid,start:s,months:b.months,renewals:b.renewals,ins:ins,alert:al},w;
+if(editId){w=byId(editId);for(var k in d)w[k]=d[k]}else{d.id=uid();w=d}
+$("addDlg").close();wSet(w).then(render)};
+$("cancelAdd").onclick=function(){$("addDlg").close()};
+
+function openRen(id){if(!can("ren"))return;renId=id;renVal="12";render();var f=$("rMonths");if(f)f.focus()}
+function renPanel(){return '<div class="card ent"><label for="rMonths" style="margin-top:0">مدة التجديد (بالأشهر)</label><input id="rMonths" inputmode="numeric" value="'+esc(renVal)+'" autocomplete="off"><div class="hint">يبدأ التجديد تلقائياً من اليوم التالي لانتهاء العقد الحالي.</div><div class="two"><button class="primary" data-rok="1">تأكيد التجديد</button><button data-rcancel="1">إلغاء</button></div></div>'}
+function doRen(){var w=byId(renId),m=parseInt(digits(renVal),10);if(!w||!can("ren"))return;
+var i=info(w);if(i.st!=="ok"&&i.st!=="warn"){renId=null;return setMsg("لا يمكن تجديد هذا العقد.")}
+if(!(m>0))return setMsg("اكتب مدة التجديد بالأشهر.");
+var nd=endDate(w);nd.setDate(nd.getDate()+1);w.renewals.push({start:iso(nd),months:m});renId=null;
+wSet(w).then(function(){setMsg("تم تجديد العقد لمدة "+m+" شهر.")})}
+function openTerm(id){if(!can("term"))return;tId=id;var w=byId(id);$("tTitle").textContent=w.term?"تعديل بيانات إنهاء العقد":"إنهاء عقد العامل";
+$("tDate").value=w.term||iso(today());$("tIns").value=w.insOut||"";$("tUndo").hidden=!w.term;$("tErr").textContent="";openDlg("termDlg")}
+$("tSave").onclick=function(){var w=byId(tId),d=$("tDate").value,e=$("tErr");
+if(!d)return e.textContent="اختر تاريخ فسخ العقد.";
+if(pd(d)<pd(w.start))return e.textContent="تاريخ الفسخ لا يسبق تاريخ العقد.";
+w.term=d;w.insOut=$("tIns").value;$("termDlg").close();wSet(w).then(render)};
+$("tUndo").onclick=function(){var w=byId(tId);w.term="";w.insOut="";$("termDlg").close();wSet(w).then(render)};
+
+/* ---- password confirm + delete ---- */
+function askPw(title,text,cb){$("pwT").textContent=title;$("pwX").textContent=text;$("pwIn").value="";$("pwErr").textContent="";pwCb=cb;openDlg("pwDlg")}
+$("pwOk").onclick=function(){var pw=$("pwIn").value;if(!pw)return $("pwErr").textContent="اكتب كلمة المرور.";
+hashPw(pw,me.salt,me.iter).then(function(h){if(h!==me.hash)return $("pwErr").textContent="كلمة المرور غير صحيحة.";
+var cb=pwCb;pwCb=null;$("pwDlg").close();if(cb)cb()}).catch(function(){$("pwErr").textContent="تعذّر التحقق."})};
+function openDel(){if(!can("del"))return;dq="";$("dq").value="";drawDel();openDlg("delDlg")}
+function drawDel(){var t=nar(dq),n=norm(dq),h="",L=sorted().filter(function(w){return match(w,t,n)});
+if(!L.length)h='<div class="empty">'+(workers.length?"لا توجد نتائج مطابقة.":"لا يوجد عمال لحذفهم.")+'</div>';
+L.forEach(function(w){h+='<div class="row"><span><strong>'+esc(w.name)+'</strong><span class="sub" style="display:block;margin:0;font-size:13px;direction:ltr;text-align:right">'+esc(w.nid)+'</span></span><button data-del="'+w.id+'">حذف</button></div>'});
+$("delList").innerHTML=h}
+$("dq").oninput=function(){dq=this.value;drawDel()};
+$("delList").onclick=function(e){var id=e.target.dataset&&e.target.dataset.del;if(!id)return;var w=byId(id);if(!w||!can("del"))return;
+askPw("تأكيد حذف العامل","سيتم حذف «"+w.name+"» نهائياً. أدخل كلمة مرورك للتأكيد.",function(){if(sel===id)sel=null;wDel(id).then(function(){drawDel();render()})})};
+
+/* ---- users ---- */
+function openUser(un){if(!can("users"))return;uEdit=un||null;var u=un?users.filter(function(x){return x.username===un})[0]:null;
+$("uTitle").textContent=u?"تعديل مستخدم":"إضافة مستخدم";$("uName").value=u?u.name:"";$("uUser").value=u?u.username:"";$("uUser").disabled=!!u;
+$("uPass").value="";$("uPassL").textContent=u?"كلمة مرور جديدة (اتركها فارغة بدون تغيير)":"كلمة المرور (6 أحرف على الأقل)";
+$("uRole").value=u?u.role:"viewer";$("uDel").hidden=!u||u.username===me.username;$("uErr").textContent="";openDlg("usrDlg")}
+function admins(){return users.filter(function(u){return u.role==="admin"}).length}
+$("uSave").onclick=function(){var n=$("uName").value.trim(),un=$("uUser").value.trim().toLowerCase(),pw=$("uPass").value,r=$("uRole").value,e=$("uErr"),old=uEdit?users.filter(function(x){return x.username===uEdit})[0]:null;
+if(!n)return e.textContent="اكتب الاسم.";
+if(!old){if(!/^[a-z0-9_.-]{3,20}$/.test(un))return e.textContent="اسم المستخدم: 3 إلى 20 حرفاً إنجليزياً أو أرقاماً بدون مسافات.";
+if(users.some(function(x){return x.username===un}))return e.textContent="اسم المستخدم مستخدم من قبل.";
+if(pw.length<6)return e.textContent="كلمة المرور 6 أحرف على الأقل."}
+else if(pw&&pw.length<6)return e.textContent="كلمة المرور 6 أحرف على الأقل.";
+if(old&&old.role==="admin"&&r!=="admin"&&admins()<2)return e.textContent="لازم يبقى مدير واحد على الأقل.";
+var done=function(u){$("usrDlg").close();uSet(u).then(render)};
+if(old){if(!pw){old.name=n;old.role=r;return done(old)}
+var salt=newSalt();hashPw(pw,salt,ITER).then(function(h){old.name=n;old.role=r;old.salt=salt;old.iter=ITER;old.hash=h;done(old)})}
+else newUser(n,un,pw,r).then(done)};
+$("uDel").onclick=function(){var un=uEdit,u=users.filter(function(x){return x.username===un})[0];if(!u||un===me.username)return;
+if(u.role==="admin"&&admins()<2)return $("uErr").textContent="لازم يبقى مدير واحد على الأقل.";
+askPw("تأكيد حذف المستخدم","سيتم حذف حساب «"+u.name+"». أدخل كلمة مرورك للتأكيد.",function(){$("usrDlg").close();uDel(un).then(render)})};
+
+/* ---- Excel ---- */
+function toIso(v){if(v==null||v==="")return "";var d;
+if(v instanceof Date)d=new Date(v.getTime()+432e5);
+else if(typeof v==="number")d=new Date(Math.round((v-25569)*864e5)+432e5);
+else{var t=norm(v),m=t.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/),n=t.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
+if(m)return m[1]+"-"+m[2].padStart(2,"0")+"-"+m[3].padStart(2,"0");
+if(n)return n[3]+"-"+n[2].padStart(2,"0")+"-"+n[1].padStart(2,"0");return ""}
+return isNaN(d)?"":d.getUTCFullYear()+"-"+String(d.getUTCMonth()+1).padStart(2,"0")+"-"+String(d.getUTCDate()).padStart(2,"0")}
+function csvOf(rows){return "\ufeff"+rows.map(function(r){return r.map(function(c){c=String(c==null?"":c);return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c}).join(",")}).join("\r\n")}
+function parseCsv(t){var rows=[],r=[],c="",q=false;t=t.replace(/^\ufeff/,"");
+for(var i=0;i<t.length;i++){var ch=t[i];if(q){if(ch==='"'){if(t[i+1]==='"'){c+='"';i++}else q=false}else c+=ch}
+else if(ch==='"')q=true;else if(ch===","){r.push(c);c=""}
+else if(ch==="\n"||ch==="\r"){if(ch==="\r"&&t[i+1]==="\n")i++;r.push(c);c="";if(r.length>1||r[0]!=="")rows.push(r);r=[]}else c+=ch}
+if(c!==""||r.length){r.push(c);rows.push(r)}
+var h=rows.shift()||[];return rows.map(function(x){var o={};h.forEach(function(k,j){o[String(k).trim()]=x[j]==null?"":x[j]});return o})}
+function viaBrowser(data,name,mime,ok){var f=null;try{f=new File([data],name,{type:mime})}catch(e){}
+function dl(){var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data],{type:mime}));a.download=name;document.body.appendChild(a);a.click();a.remove();setMsg(ok)}
+if(f&&navigator.canShare&&navigator.canShare({files:[f]}))return navigator.share({files:[f]}).then(function(){setMsg(ok)}).catch(function(e){if(!e||e.name!=="AbortError")dl()});
+dl()}
+function deliver(data,name,mime,ok){
+viaBrowser(data,name,mime,ok)}
+function exportX(blank){
+if(!can(blank?"imp":"exp"))return;
+try{
+var rows=[H],ok=blank?"تم تجهيز النموذج الفارغ.":"تم تصدير "+workers.length+" عامل.",base=(blank?"template-":"contracts-")+iso(today());
+if(!blank)sorted().forEach(function(w){var i=info(w);rows.push([w.name,w.nid,w.start,durList(w),w.ins||"",w.alert,w.term||"",w.insOut||"",i.label,i.st==="perm"?"مفتوح المدة":iso(endDate(w)),years(w)])});
+if(!window.XLSX)return deliver(csvOf(rows),base+".csv","text/csv;charset=utf-8",ok+" (بصيغة CSV لأن مكتبة Excel لم تُحمَّل)");
+var ws=XLSX.utils.aoa_to_sheet(rows);ws["!cols"]=H.map(function(h,k){return{wch:k===0?24:k===1?18:k===3?26:22}});
+var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"العمال");
+if(blank)XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(["تعليمات تعبئة الملف","الاسم والرقم القومي (14 رقماً) وتاريخ بداية العقد ومدد العقود: حقول إلزامية.","تاريخ بداية العقد بصيغة 2023-03-01 أو 01/03/2023.","مدد العقود بالأشهر: العقد الأول ثم التجديدات بالترتيب، وكل مدة تبدأ تلقائياً بعد انتهاء التي قبلها.","مثال: 12 تعني عقداً واحداً لمدة 12 شهراً بدون تجديد.","مثال: عامل بدأ قبل 3 سنوات وجُدّد كل سنة: 12,12,12.","مثال: إذا كُتب 12,12 فقط لعامل بدأ قبل 3 سنوات، فالعقد انتهى دون تجديد ويصبح دائماً تلقائياً.","يمكن الفصل بين المدد بفاصلة أو مسافة أو فاصلة منقوطة.","تاريخ التسجيل في التأمينات وتاريخ فسخ العقد وتاريخ الإخراج من التأمينات: اختيارية. أيام الإنذار الافتراضية 30.","الأعمدة الأخيرة (الحالة وتاريخ الانتهاء وسنوات العمل) للعرض فقط ولا تُستورد."].map(function(l){return [l]})),"تعليمات");
+wb.Workbook={Views:[{RTL:true}]};
+deliver(XLSX.write(wb,{bookType:"xlsx",type:"array"}),base+".xlsx","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",ok)
+}catch(err){setMsg("تعذّر إنشاء الملف: "+(err&&err.message||err))}}
+function importX(file){
+if(!can("imp"))return;
+var csv=/\.csv$/i.test(file.name);
+if(!csv&&!window.XLSX)return setMsg("لقراءة ملفات xlsx يلزم اتصال بالإنترنت لتحميل مكتبة Excel. أو احفظ الملف بصيغة CSV واستورده.");
+(csv?file.text().then(parseCsv):file.arrayBuffer().then(function(buf){var wb=XLSX.read(buf,{type:"array",cellDates:true});return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""})})).then(function(rs){
+var add=0,upd=0,bad=[],out=[];
+function pick(r,a,b){return r[a]!==undefined&&r[a]!==""?r[a]:r[b]}
+rs.forEach(function(r,k){var n=String(r[H[0]]).trim(),nid=norm(r[H[1]]),st=toIso(pick(r,H[2],"تاريخ العقد")),ds=parseDurs(pick(r,H[3],"مدة العقد (شهر)"));
+if(!n||!/^\d{14}$/.test(nid)||!st||!ds){bad.push(k+2);return}
+var b=build(st,ds),d={name:n,nid:nid,start:st,months:b.months,renewals:b.renewals,ins:toIso(r[H[4]]),alert:parseInt(norm(r[H[5]]),10)||30},tm=toIso(r[H[6]]),io=toIso(r[H[7]]),w=workers.filter(function(x){return x.nid===nid})[0]||out.filter(function(x){return x.nid===nid})[0];
+if(w){for(var f in d)w[f]=d[f];upd++}else{d.id=uid()+out.length;w=d;add++}
+w.term=tm||"";w.insOut=tm?io:"";if(out.indexOf(w)<0)out.push(w)});
+return Promise.all(out.map(wSet)).then(function(){setMsg("تمت إضافة "+add+" وتحديث "+upd+(bad.length?"، وتخطّي "+bad.length+" صف غير مكتمل (الصفوف: "+bad.slice(0,6).join("، ")+")":"")+".")})}).catch(function(){setMsg("تعذّرت قراءة الملف. استخدم ملف Excel مُصدَّراً أو النموذج الفارغ.")})}
+$("xl").onchange=function(){if(this.files[0])importX(this.files[0]);this.value=""};
+
+/* ---- events ---- */
+document.querySelector("nav").onclick=function(e){if(e.target.dataset.v){view=e.target.dataset.v;msg="";renId=null;render();window.scrollTo(0,0)}};
+document.body.addEventListener("click",function(e){var c=e.target.closest("[data-close]");if(c)$(c.dataset.close).close()});
+$("app").oninput=function(e){if(e.target.id==="q"){q=e.target.value;drawPick()}else if(e.target.id==="rMonths")renVal=e.target.value};
+$("app").onclick=function(e){var t=e.target.closest("button");if(!t)return;var d=t.dataset;
+if(t.id==="aGo")authMode==="register"?doRegister():doLogin();
+else if(d.auth)authView(d.auth);else if(d.go){view=d.go;render();window.scrollTo(0,0)}
+else if(t.id==="outBtn"){me=null;clrSess();sel=null;view="home";msg="";render()}
+else if(t.id==="addBtn")openForm();else if(t.id==="delBtn")openDel();
+else if(t.id==="impBtn"&&can("imp"))$("xl").click();else if(t.id==="expBtn")exportX(false);else if(t.id==="tplBtn")exportX(true);
+else if(t.id==="uAdd")openUser();else if(d.uedit)openUser(d.uedit);
+else if(d.f){filter=d.f;render()}
+else if(d.open){sel=d.open;view="list";msg="";renId=null;render();window.scrollTo(0,0)}
+else if(d.back){sel=null;renId=null;render()}
+else if(d.rok)doRen();else if(d.rcancel){renId=null;render()}
+else if(d.edit)openForm(d.edit);else if(d.ren)openRen(d.ren);else if(d.term)openTerm(d.term)};
+var dn=false;
+function onEnter(e){if(!(e.key==="Enter"||e.keyCode===13||e.which===13))return;
+var t=e.target;if(!t||!t.closest||t.tagName==="BUTTON"||t.tagName==="TEXTAREA"||t.type==="checkbox"||t.type==="file")return;
+var box=t.closest(".ent");if(!box)return;
+if(e.type==="keydown"){dn=true;setTimeout(function(){dn=false},700)}else if(dn){dn=false;return}
+e.preventDefault();
+var f=fields(box),i=f.indexOf(t);
+if(i>-1&&i<f.length-1)f[i+1].focus();else{var b=box.querySelector(".primary");if(b)b.click()}}
+document.addEventListener("keydown",onEnter,true);document.addEventListener("keyup",onEnter,true);
+render();init();
+})();
+</script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}</script>
+</body>
+</html>
