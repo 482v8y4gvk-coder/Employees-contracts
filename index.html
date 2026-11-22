@@ -113,7 +113,7 @@ nav[hidden]{display:none}.auth{margin-top:8vh}
 <label for="uUser">اسم المستخدم (إنجليزي بدون مسافات)</label><input id="uUser" class="nid" autocomplete="off" autocapitalize="none">
 <label for="uPass" id="uPassL">كلمة المرور (6 أحرف على الأقل)</label><input id="uPass" type="password" autocomplete="new-password">
 <label for="uRole">الصلاحية</label>
-<select id="uRole"><option value="viewer">مشاهد (عرض وبحث فقط)</option><option value="editor">مُدخل بيانات (بدون حذف)</option><option value="admin">مدير (كل الصلاحيات)</option></select>
+<select id="uRole"><option value="viewer">مشاهد (عرض وبحث فقط)</option><option value="editor">مُدخل بيانات (بدون حذف)</option><option value="admin">مدير (كل الصلاحيات)</option><option value="pending">بانتظار الموافقة (بدون وصول)</option></select>
 <div class="err" id="uErr" role="alert"></div>
 <div class="stack"><button class="primary" id="uSave">حفظ</button><button class="danger" id="uDel" hidden>حذف المستخدم</button><button data-close="usrDlg">إغلاق</button></div>
 </dialog>
@@ -124,8 +124,8 @@ nav[hidden]{display:none}.auth{margin-top:8vh}
 (function(){
 var KEY="workers-contracts-v1",UKEY="wc-users-v1",SKEY="wc-session",ITER=100000,mem={};
 var DB=null,ready=false,slow=false,workers=[],users=[],uReady=false,wReady=false,me=null;
-var view="home",filter="all",sel=null,editId=null,q="",dq="",msg="",rId=null,renId=null,renVal="12",tId=null,uEdit=null,pwCb=null,authMode="login",fails=0;
-var ROLES={admin:"مدير",editor:"مُدخل بيانات",viewer:"مشاهد"},RCLS={admin:"perm",editor:"ok",viewer:"term"};
+var view="home",filter="all",sel=null,editId=null,q="",dq="",msg="",rId=null,renId=null,renVal="12",tId=null,uEdit=null,pwCb=null,authMode="login",authFirst=false,fails=0;
+var ROLES={admin:"مدير",editor:"مُدخل بيانات",viewer:"مشاهد",pending:"بانتظار الموافقة"},RCLS={admin:"perm",editor:"ok",viewer:"term",pending:"warn"};
 var H=["الاسم","الرقم القومي","تاريخ بداية العقد","مدد العقود بالأشهر","تاريخ التسجيل في التأمينات","أيام الإنذار","تاريخ فسخ العقد","تاريخ الإخراج من التأمينات","الحالة","تاريخ انتهاء العقد","سنوات العمل"];
 function $(id){return document.getElementById(id)}
 function lsGet(k){try{var r=localStorage.getItem(k);return r?JSON.parse(r):[]}catch(e){return mem[k]||[]}}
@@ -197,13 +197,15 @@ function setMsg(m){msg=m;render()}
 function match(w,t,n){return !t||nar(w.name).indexOf(t)>-1||(n&&w.nid.indexOf(n)>-1)}
 
 /* ---- screens ---- */
-function authView(mode){authMode=mode;var a=$("app");
-a.innerHTML='<div class="card auth ent"><h1>'+(mode==="setup"?"إعداد البرنامج":"متابعة عقود العمال")+'</h1><p class="sub">'+(mode==="setup"?"أنشئ حساب المدير الأول. كلمة المرور هذه تُستخدم للدخول ولتأكيد الحذف.":"سجّل الدخول للمتابعة.")+'</p>'
-+(mode==="setup"?'<label for="aName">الاسم</label><input id="aName" autocomplete="off">':'')
-+'<label for="aUser">اسم المستخدم</label><input id="aUser" class="nid" autocomplete="username" autocapitalize="none">'
-+'<label for="aPass">كلمة المرور</label><input id="aPass" type="password" autocomplete="'+(mode==="setup"?"new-password":"current-password")+'">'
-+(mode==="setup"?'<label for="aPass2">تأكيد كلمة المرور</label><input id="aPass2" type="password" autocomplete="new-password">':'')
-+'<div class="err" id="aErr" role="alert"></div><button class="primary" id="aGo" style="width:100%;margin-top:6px">'+(mode==="setup"?"إنشاء الحساب":"دخول")+'</button></div>';
+function authView(mode){authMode=mode;authFirst=!users.length;var a=$("app"),reg=mode==="register"||authFirst;
+a.innerHTML='<div class="card auth ent"><h1>متابعة عقود العمال</h1>'
++(authFirst?'<p class="sub">أنشئ أول حساب. هذا الحساب يصبح مديراً للبرنامج.</p>':'<div class="chips" style="margin:6px 0 14px"><button class="chip" data-auth="login" aria-pressed="'+!reg+'">تسجيل الدخول</button><button class="chip" data-auth="register" aria-pressed="'+reg+'">إنشاء حساب</button></div>')
++(reg?'<label for="aName">الاسم</label><input id="aName" autocomplete="off">':'')
++'<label for="aUser">اسم المستخدم (إنجليزي)</label><input id="aUser" class="nid" autocomplete="username" autocapitalize="none">'
++'<label for="aPass">كلمة المرور</label><input id="aPass" type="password" autocomplete="'+(reg?"new-password":"current-password")+'">'
++(reg?'<label for="aPass2">تأكيد كلمة المرور</label><input id="aPass2" type="password" autocomplete="new-password">':'')
++(reg&&!authFirst?'<div class="hint">الحسابات الجديدة تحتاج موافقة المدير قبل الدخول.</div>':'')
++'<div class="err" id="aErr" role="alert"></div><button class="primary" id="aGo" style="width:100%;margin-top:6px">'+(reg?"إنشاء الحساب":"دخول")+'</button></div>';
 hints(a);var f=a.querySelector("input");if(f)f.focus()}
 function doLogin(){var un=$("aUser").value.trim().toLowerCase(),pw=$("aPass").value,u=users.filter(function(x){return x.username===un})[0];
 if(!un||!pw)return $("aErr").textContent="اكتب اسم المستخدم وكلمة المرور.";
@@ -211,14 +213,15 @@ $("aErr").textContent="";
 wait(fails*600).then(function(){return u?hashPw(pw,u.salt,u.iter):null}).then(function(h){
 if(u&&h===u.hash){fails=0;me=u;setSess(un);view="home";render();window.scrollTo(0,0)}else{fails++;$("aErr").textContent="اسم المستخدم أو كلمة المرور غير صحيحة."}
 }).catch(function(){$("aErr").textContent="المتصفح لا يدعم التشفير المطلوب."})}
-function doSetup(){var n=$("aName").value.trim(),un=$("aUser").value.trim().toLowerCase(),p1=$("aPass").value,p2=$("aPass2").value,e=$("aErr");
+function doRegister(){var n=$("aName").value.trim(),un=$("aUser").value.trim().toLowerCase(),p1=$("aPass").value,p2=$("aPass2").value,e=$("aErr"),first=!users.length;
 if(!n)return e.textContent="اكتب الاسم.";
 if(!/^[a-z0-9_.-]{3,20}$/.test(un))return e.textContent="اسم المستخدم: 3 إلى 20 حرفاً إنجليزياً أو أرقاماً بدون مسافات.";
+if(users.some(function(x){return x.username===un}))return e.textContent="اسم المستخدم مستخدم من قبل.";
 if(p1.length<6)return e.textContent="كلمة المرور 6 أحرف على الأقل.";
 if(p1!==p2)return e.textContent="كلمتا المرور غير متطابقتين.";
-newUser(n,un,p1,"admin").then(function(u){return uSet(u).then(function(){me=u;setSess(un);
-if(DB&&!workers.length){lsGet(KEY).forEach(function(w){wSet(normW(w))})}
-view="home";render()})}).catch(function(){e.textContent="المتصفح لا يدعم التشفير المطلوب."})}
+newUser(n,un,p1,first?"admin":"pending").then(function(u){return uSet(u).then(function(){
+if(first){me=u;setSess(un);if(DB&&!workers.length){lsGet(KEY).forEach(function(w){wSet(normW(w))})}view="home";render()}
+else{authView("login");var x=$("aErr");x.textContent="تم إنشاء الحساب. بعد موافقة المدير تقدر تسجّل الدخول من أي جهاز.";x.style.color="var(--ok)"}})}).catch(function(){e.textContent="المتصفح لا يدعم التشفير المطلوب."})}
 function hints(box){var f=fields(box);f.forEach(function(x,i){x.enterKeyHint=i<f.length-1?"next":"done"})}
 function fields(box){return [].slice.call(box.querySelectorAll("input:not([type=checkbox]):not([type=file]):not(:disabled),select")).filter(function(x){return !x.hidden&&x.offsetParent!==null})}
 function openDlg(id){var d=$(id);d.showModal();hints(d)}
@@ -227,8 +230,9 @@ function render(){
 var a=$("app"),nav=document.querySelector("nav");
 if(!ready){nav.hidden=true;a.innerHTML='<div class="empty">'+(slow?"تعذّر الوصول إلى البيانات حتى الآن. تأكد من الاتصال بالإنترنت وسيستمر المحاولة.":"جارٍ التحميل…")+'</div>';return}
 if(me){var cu=me.username;me=users.filter(function(u){return u.username===cu})[0]||null;if(!me)clrSess()}
-if(!users.length){nav.hidden=true;if(authMode!=="setup"||!$("aPass2"))authView("setup");return}
-if(!me){nav.hidden=true;if(!$("aGo")||authMode!=="login")authView("login");return}
+if(!users.length){nav.hidden=true;if(!$("aPass2")||!authFirst)authView("register");return}
+if(!me){nav.hidden=true;if(!$("aGo")||authFirst)authView(authMode==="register"?"register":"login");return}
+if(me.role==="pending"){nav.hidden=true;a.innerHTML='<div class="card auth"><h1>بانتظار الموافقة</h1><p class="sub">تم إنشاء حسابك «'+esc(me.name)+'». سيمنحك المدير صلاحية الدخول، وبعدها يفتح لك البرنامج هنا تلقائياً من أي جهاز.</p><button id="outBtn" style="width:100%">تسجيل الخروج</button></div>';return}
 nav.hidden=false;
 if(view==="users"&&!can("users"))view="home";
 document.querySelectorAll("nav button").forEach(function(b){b.setAttribute("aria-current",b.dataset.v===view);if(b.dataset.v==="users")b.hidden=!can("users")});
@@ -244,6 +248,8 @@ if(can("exp"))ac+='<button id="expBtn">تصدير إلى Excel</button>';
 if(can("imp"))ac+='<button class="full" id="tplBtn">تحميل نموذج Excel فارغ</button>';
 if(ac)h+='<div class="actions">'+ac+'</div>';
 
+var pn=users.filter(function(u){return u.role==="pending"}).length;
+if(can("users")&&pn)h+='<button class="alert pick" data-go="users"><strong>طلبات حسابات جديدة</strong><span>'+pn+' بانتظار موافقتك</span></button>';
 var al=L.filter(function(w){return info(w).st==="warn"});
 h+='<h2>عقود تنتهي قريباً</h2>';
 if(!al.length)h+='<div class="empty">لا توجد عقود تحتاج انتباهاً الآن.</div>';
@@ -420,7 +426,8 @@ document.querySelector("nav").onclick=function(e){if(e.target.dataset.v){view=e.
 document.body.addEventListener("click",function(e){var c=e.target.closest("[data-close]");if(c)$(c.dataset.close).close()});
 $("app").oninput=function(e){if(e.target.id==="q"){q=e.target.value;drawPick()}else if(e.target.id==="rMonths")renVal=e.target.value};
 $("app").onclick=function(e){var t=e.target.closest("button");if(!t)return;var d=t.dataset;
-if(t.id==="aGo")authMode==="setup"?doSetup():doLogin();
+if(t.id==="aGo")authMode==="register"?doRegister():doLogin();
+else if(d.auth)authView(d.auth);else if(d.go){view=d.go;render();window.scrollTo(0,0)}
 else if(t.id==="outBtn"){me=null;clrSess();sel=null;view="home";msg="";render()}
 else if(t.id==="addBtn")openForm();else if(t.id==="delBtn")openDel();
 else if(t.id==="impBtn"&&can("imp"))$("xl").click();else if(t.id==="expBtn")exportX(false);else if(t.id==="tplBtn")exportX(true);
