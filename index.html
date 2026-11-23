@@ -517,6 +517,33 @@ document.addEventListener("keydown",onEnter,true);document.addEventListener("key
 render();init();
 })();
 </script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", async function () {
+    try {
+      const registration =
+        await navigator.serviceWorker.register("./sw.js");
+
+      registration.update();
+
+      let refreshing = false;
+
+      navigator.serviceWorker.addEventListener(
+        "controllerchange",
+        function () {
+          if (refreshing) return;
+          refreshing = true;
+          window.location.reload();
+        }
+      );
+
+    } catch (error) {
+      console.log("Update check failed:", error);
+    }
+  });
+}
+</script>
+
 </body>
 </html>
