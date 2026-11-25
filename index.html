@@ -307,10 +307,10 @@ if(me.role==="pending"){nav.hidden=true;a.innerHTML='<div class="card auth"><h1>
 nav.hidden=false;
 if(view==="users"&&!can("users"))view="home";
 document.querySelectorAll("nav button").forEach(function(b){b.setAttribute("aria-current",b.dataset.v===view);if(b.dataset.v==="users")b.hidden=!can("users")});
-var h="",L=sorted(),c={ok:0,warn:0,perm:0,term:0};L.forEach(function(w){c[info(w).st]++});
+var h="",L=sorted(),c={ok:0,warn:0,perm:0,term:0,ins:0};L.forEach(function(w){c[info(w).st]++;if(!w.ins)c.ins++});
 if(view==="home"){
 h+='<div class="head"><h1>متابعة العقود</h1><button id="outBtn">خروج</button></div><p class="sub">مرحباً، '+esc(me.name)+' · <span class="badge '+RCLS[me.role]+'">'+ROLES[me.role]+'</span> · '+workers.length+' عامل</p>';
-h+='<div class="stats"><div class="stat ok"><b>'+c.ok+'</b><span>ساري</span></div><div class="stat warn"><b>'+c.warn+'</b><span>ينتهي قريباً</span></div><div class="stat perm"><b>'+c.perm+'</b><span>عقود دائمة</span></div><div class="stat term"><b>'+c.term+'</b><span>تم إنهاء عقودهم</span></div></div>';
+h+='<div class="stats"><div class="stat ok"><b>'+c.ok+'</b><span>ساري</span></div><div class="stat warn"><b>'+c.warn+'</b><span>ينتهي قريباً</span></div><div class="stat perm"><b>'+c.perm+'</b><span>عقود دائمة</span></div><div class="stat term"><b>'+c.term+'</b><span>تم إنهاء عقودهم</span></div><div class="stat"><b>'+c.ins+'</b><span>غير مسجلين بالتأمينات</span></div></div>';
 var ac="";
 if(can("add"))ac+='<button class="primary" id="addBtn">إضافة عامل</button>';
 if(can("del"))ac+='<button class="danger" id="delBtn">حذف عامل</button>';
