@@ -328,9 +328,9 @@ al.forEach(function(w){var i=info(w);h+='<button class="alert pick" data-open="'
 }
 if(view==="status"){
 h+='<h1>حالة العمال</h1><p class="sub">اختر الحالة، واضغط على العامل لفتح صفحته</p><div class="chips">';
-[["all","الكل",workers.length],["ok","ساري",c.ok],["warn","ينتهي قريباً",c.warn],["perm","عقود دائمة",c.perm],["term","تم إنهاء عقودهم",c.term]].forEach(function(f){h+='<button class="chip" data-f="'+f[0]+'" aria-pressed="'+(filter===f[0])+'">'+f[1]+' ('+f[2]+')</button>'});
+[["all","الكل",workers.length],["ok","ساري",c.ok],["warn","ينتهي قريباً",c.warn],["perm","عقود دائمة",c.perm],["term","تم إنهاء عقودهم",c.term],["ins","غير مسجل بالتأمينات",c.ins]].forEach(function(f){h+='<button class="chip" data-f="'+f[0]+'" aria-pressed="'+(filter===f[0])+'">'+f[1]+' ('+f[2]+')</button>'});
 h+='</div>';
-var items=L.filter(function(w){return filter==="all"||info(w).st===filter});
+var items=L.filter(function(w){return filter==="all"||(filter==="ins"?!w.ins:info(w).st===filter)});
 if(!items.length)h+='<div class="empty">'+(workers.length?"لا يوجد عمال بهذه الحالة.":"لم تضف أي عامل بعد.")+'</div>';
 items.forEach(function(w){h+=rowBtn(w)});
 }
