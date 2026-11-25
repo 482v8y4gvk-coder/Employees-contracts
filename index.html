@@ -120,19 +120,7 @@ nav[hidden]{display:none}.auth{margin-top:8vh}
 
 <input type="file" id="xl" accept=".xlsx,.xls,.csv" hidden>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import {
-  initializeFirestore,
-  persistentLocalCache,
-  persistentMultipleTabManager,
-  collection,
-  doc,
-  setDoc,
-  deleteDoc,
-  onSnapshot
-} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-
+<script>
 (function(){
 var KEY="workers-contracts-v1",UKEY="wc-users-v1",SKEY="wc-session",ITER=100000,mem={};
 var DB=null,ready=false,slow=false,workers=[],users=[],uReady=false,wReady=false,me=null;
@@ -153,79 +141,32 @@ function fmt(d){return (typeof d==="string"?pd(d):d).toLocaleDateString("ar-u-nu
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function digits(v){return String(v==null?"":v).replace(/[٠-٩]/g,function(d){return d.charCodeAt(0)-1632})}
 function parseDurs(v){var p=digits(v).split(/[\s,،;؛|]+/).filter(Boolean);if(!p.length)return null;for(var i=0;i<p.length;i++){if(!/^\d+$/.test(p[i])||+p[i]<1)return null}return p.map(Number)}
+function durOrDef(v){if(String(v==null?"":v).trim()==="")return [12];return parseDurs(v)}
 function addM(st,m){var d=pd(st),e=new Date(d.getFullYear(),d.getMonth()+m,d.getDate());if(e.getDate()!==d.getDate())e=new Date(d.getFullYear(),d.getMonth()+m+1,0);return iso(e)}
 function build(st,l){var o={months:l[0],renewals:[]},c=l[0];for(var k=1;k<l.length;k++){o.renewals.push({start:addM(st,c),months:l[k]});c+=l[k]}return o}
 function durList(w){return [w.months].concat(w.renewals.map(function(r){return r.months})).join(",")}
 function wait(ms){return new Promise(function(r){setTimeout(r,ms)})}
 
-/* ---- data layer: Firestore cloud sync with local fallback ---- */
-var denied="تعذّر الحفظ في السحابة: تحقق من اتصال الإنترنت أو من قواعد Firestore.";
+/* ---- data layer: shared db when available, otherwise this device only ---- */
+var denied="تعذّر الحفظ: لا تملك صلاحية الكتابة في قاعدة البيانات. اطلب من مالك الصفحة منحك صلاحية «Contributor» أو أعلى.";
 function fail1(){setMsg(denied)}
-function wSet(w){
-  var o=JSON.parse(JSON.stringify(w));
-  if(!byId(w.id))workers.push(w);
-  if(DB)return setDoc(doc(db,"workers",w.id),o).catch(fail1);
-  lsSet(KEY,workers);return Promise.resolve();
-}
-function wDel(id){
-  workers=workers.filter(function(w){return w.id!==id});
-  if(DB)return deleteDoc(doc(db,"workers",id)).catch(fail1);
-  lsSet(KEY,workers);return Promise.resolve();
-}
-function uSet(u){
-  var o=JSON.parse(JSON.stringify(u));
-  users=users.filter(function(x){return x.username!==u.username}).concat([u]);
-  if(DB)return setDoc(doc(db,"users",u.username),o).catch(fail1);
-  lsSet(UKEY,users);return Promise.resolve();
-}
-function uDel(un){
-  users=users.filter(function(x){return x.username!==un});
-  if(DB)return deleteDoc(doc(db,"users",un)).catch(fail1);
-  lsSet(UKEY,users);return Promise.resolve();
-}
+function wSet(w){var o=JSON.parse(JSON.stringify(w));if(DB&&!byId(w.id))workers.push(w);if(DB)return DB.doc("workers/"+w.id).set(o).catch(fail1);if(workers.indexOf(w)<0)workers.push(w);lsSet(KEY,workers);return Promise.resolve()}
+function wDel(id){if(DB)workers=workers.filter(function(w){return w.id!==id});if(DB)return DB.doc("workers/"+id).delete().catch(fail1);workers=workers.filter(function(w){return w.id!==id});lsSet(KEY,workers);return Promise.resolve()}
+function uSet(u){if(DB)users=users.filter(function(x){return x.username!==u.username}).concat([u]);if(DB)return DB.doc("users/"+u.username).set(u).catch(fail1);users=users.filter(function(x){return x.username!==u.username}).concat([u]);lsSet(UKEY,users);return Promise.resolve()}
+function uDel(un){if(DB)users=users.filter(function(x){return x.username!==un});if(DB)return DB.doc("users/"+un).delete().catch(fail1);users=users.filter(function(x){return x.username!==un});lsSet(UKEY,users);return Promise.resolve()}
 function fresh(s){return !(s.metadata&&s.metadata.fromCache)}
-function startDb(firestoreDb){
-  DB=firestoreDb;
-  onSnapshot(collection(DB,"users"),function(s){
-    users=s.docs.map(function(d){return d.data()});
-    if(fresh(s)||s.docs.length)uReady=true;
-    sync();
-  },function(){slow=true;render()});
-  onSnapshot(collection(DB,"workers"),function(s){
-    workers=s.docs.map(function(d){var w=d.data();if(!w.id)w.id=d.id;return normW(w)});
-    if(fresh(s)||s.docs.length)wReady=true;
-    sync();
-  },function(){slow=true;render()});
-}
+function startDb(db){DB=db;
+db.collection("users").onSnapshot(function(s){users=s.docs.map(function(d){return d.data()});if(fresh(s))uReady=true;sync()},function(){slow=true;render()});
+db.collection("workers").onSnapshot(function(s){workers=s.docs.map(function(d){var w=d.data();w.id=d.id;return normW(w)});if(fresh(s))wReady=true;sync()},function(){slow=true;render()})}
 function startLocal(){DB=null;workers=lsGet(KEY).map(normW);users=lsGet(UKEY);uReady=wReady=true;sync()}
-function sync(){
-  ready=uReady&&wReady;
-  if(!me){try{var u=sessionStorage.getItem(SKEY);if(u)me=users.filter(function(x){return x.username===u})[0]||null}catch(e){}}
-  var a=document.activeElement;if(ready&&me&&a&&a.id==="rMonths")return;
-  if(ready&&me&&view==="list"&&!sel&&a&&a.id==="q"){drawPick();return}
-  render();
-}
-
-var firebaseConfig={
-  apiKey:"AIzaSyD1B5eJgwZRVefqbf3hUI8XWFa2t1al4LI",
-  authDomain: "employees-contracts.firebaseapp.com",
-  projectId: "employees-contracts",
-  storageBucket: "employees-contracts.firebasestorage.app",
-  messagingSenderId: "867164804787",
-  appId: "1:867164804787:web:76ced90364a403fb60c2c6"
-};
-var db=null;
-
-function init(){
-  setTimeout(function(){if(!ready){slow=true;render()}},8000);
-  try{
-    var app=initializeApp(firebaseConfig);
-    db=initializeFirestore(app,{localCache:persistentLocalCache({tabManager:persistentMultipleTabManager()})});
-    startDb(db);
-  }catch(e){
-    startLocal();
-  }
-}
+function sync(){ready=uReady&&wReady;
+if(!me){try{var u=sessionStorage.getItem(SKEY);if(u)me=users.filter(function(x){return x.username===u})[0]||null}catch(e){}}
+var a=document.activeElement;if(ready&&me&&a&&a.id==="rMonths")return;
+if(ready&&me&&view==="list"&&!sel&&a&&a.id==="q"){drawPick();return}
+render()}
+function init(){setTimeout(function(){if(!ready){slow=true;render()}},10000);
+if(!(window.claude&&claude.use)){startLocal();return}
+claude.use("db").then(function(db){if(db)startDb(db);else startLocal()}).catch(startLocal)}
 
 /* ---- passwords ---- */
 function b64(buf){return btoa(String.fromCharCode.apply(null,new Uint8Array(buf)))}
@@ -257,41 +198,31 @@ function setMsg(m){msg=m;render()}
 function match(w,t,n){return !t||nar(w.name).indexOf(t)>-1||(n&&w.nid.indexOf(n)>-1)}
 
 /* ---- screens ---- */
-function authView(mode){
-  authMode=mode;authFirst=!users.length;var a=$("app"),reg=mode==="register"||authFirst;
-  a.innerHTML='<div class="card auth ent"><h1>متابعة عقود العمال</h1>'
-  +(authFirst?'<p class="sub">أنشئ أول حساب. هذا الحساب يصبح مديراً للبرنامج.</p>':'<div class="chips" style="margin:6px 0 14px"><button class="chip" data-auth="login" aria-pressed="'+!reg+'">تسجيل الدخول</button><button class="chip" data-auth="register" aria-pressed="'+reg+'">إنشاء حساب</button></div>')
-  +(reg?'<label for="aName">الاسم</label><input id="aName" autocomplete="off">':'')
-  +'<label for="aUser">اسم المستخدم (إنجليزي)</label><input id="aUser" class="nid" autocomplete="username" autocapitalize="none">'
-  +'<label for="aPass">كلمة المرور</label><input id="aPass" type="password" autocomplete="'+(reg?"new-password":"current-password")+'">'
-  +(reg?'<label for="aPass2">تأكيد كلمة المرور</label><input id="aPass2" type="password" autocomplete="new-password">':'')
-  +(reg&&!authFirst?'<div class="hint">الحسابات الجديدة تحتاج موافقة المدير قبل الدخول.</div>':'')
-  +'<div class="err" id="aErr" role="alert"></div><button class="primary" id="aGo" style="width:100%;margin-top:6px">'+(reg?"إنشاء الحساب":"دخول")+'</button></div>';
-  hints(a);var f=a.querySelector("input");if(f)f.focus();
-}
-function doLogin(){
-  var un=$("aUser").value.trim().toLowerCase(),pw=$("aPass").value,u=users.filter(function(x){return x.username===un})[0];
-  if(!un||!pw)return $("aErr").textContent="اكتب اسم المستخدم وكلمة المرور.";
-  $("aErr").textContent="";
-  wait(fails*600).then(function(){return u?hashPw(pw,u.salt,u.iter):null}).then(function(h){
-    if(u&&h===u.hash){fails=0;me=u;setSess(un);view="home";render();window.scrollTo(0,0)}
-    else{fails++;$("aErr").textContent="اسم المستخدم أو كلمة المرور غير صحيحة."}
-  }).catch(function(){$("aErr").textContent="المتصفح لا يدعم التشفير المطلوب."});
-}
-function doRegister(){
-  var n=$("aName").value.trim(),un=$("aUser").value.trim().toLowerCase(),p1=$("aPass").value,p2=$("aPass2").value,e=$("aErr"),first=!users.length;
-  if(!n)return e.textContent="اكتب الاسم.";
-  if(!/^[a-z0-9_.-]{3,20}$/.test(un))return e.textContent="اسم المستخدم: 3 إلى 20 حرفاً إنجليزياً أو أرقاماً بدون مسافات.";
-  if(users.some(function(x){return x.username===un}))return e.textContent="اسم المستخدم مستخدم من قبل.";
-  if(p1.length<6)return e.textContent="كلمة المرور 6 أحرف على الأقل.";
-  if(p1!==p2)return e.textContent="كلمتا المرور غير متطابقتين.";
-  newUser(n,un,p1,first?"admin":"pending").then(function(u){
-    return uSet(u).then(function(){
-      if(first){me=u;setSess(un);if(DB&&!workers.length){lsGet(KEY).forEach(function(w){wSet(normW(w))})}view="home";render()}
-      else{authView("login");var x=$("aErr");x.textContent="تم إنشاء الحساب. بعد موافقة المدير تقدر تسجّل الدخول من أي جهاز.";x.style.color="var(--ok)"}
-    });
-  }).catch(function(){e.textContent="المتصفح لا يدعم التشفير المطلوب."});
-}
+function authView(mode){authMode=mode;authFirst=!users.length;var a=$("app"),reg=mode==="register"||authFirst;
+a.innerHTML='<div class="card auth ent"><h1>متابعة عقود العمال</h1>'
++(authFirst?'<p class="sub">أنشئ أول حساب. هذا الحساب يصبح مديراً للبرنامج.</p>':'<div class="chips" style="margin:6px 0 14px"><button class="chip" data-auth="login" aria-pressed="'+!reg+'">تسجيل الدخول</button><button class="chip" data-auth="register" aria-pressed="'+reg+'">إنشاء حساب</button></div>')
++(reg?'<label for="aName">الاسم</label><input id="aName" autocomplete="off">':'')
++'<label for="aUser">اسم المستخدم (إنجليزي)</label><input id="aUser" class="nid" autocomplete="username" autocapitalize="none">'
++'<label for="aPass">كلمة المرور</label><input id="aPass" type="password" autocomplete="'+(reg?"new-password":"current-password")+'">'
++(reg?'<label for="aPass2">تأكيد كلمة المرور</label><input id="aPass2" type="password" autocomplete="new-password">':'')
++(reg&&!authFirst?'<div class="hint">الحسابات الجديدة تحتاج موافقة المدير قبل الدخول.</div>':'')
++'<div class="err" id="aErr" role="alert"></div><button class="primary" id="aGo" style="width:100%;margin-top:6px">'+(reg?"إنشاء الحساب":"دخول")+'</button></div>';
+hints(a);var f=a.querySelector("input");if(f)f.focus()}
+function doLogin(){var un=$("aUser").value.trim().toLowerCase(),pw=$("aPass").value,u=users.filter(function(x){return x.username===un})[0];
+if(!un||!pw)return $("aErr").textContent="اكتب اسم المستخدم وكلمة المرور.";
+$("aErr").textContent="";
+wait(fails*600).then(function(){return u?hashPw(pw,u.salt,u.iter):null}).then(function(h){
+if(u&&h===u.hash){fails=0;me=u;setSess(un);view="home";render();window.scrollTo(0,0)}else{fails++;$("aErr").textContent="اسم المستخدم أو كلمة المرور غير صحيحة."}
+}).catch(function(){$("aErr").textContent="المتصفح لا يدعم التشفير المطلوب."})}
+function doRegister(){var n=$("aName").value.trim(),un=$("aUser").value.trim().toLowerCase(),p1=$("aPass").value,p2=$("aPass2").value,e=$("aErr"),first=!users.length;
+if(!n)return e.textContent="اكتب الاسم.";
+if(!/^[a-z0-9_.-]{3,20}$/.test(un))return e.textContent="اسم المستخدم: 3 إلى 20 حرفاً إنجليزياً أو أرقاماً بدون مسافات.";
+if(users.some(function(x){return x.username===un}))return e.textContent="اسم المستخدم مستخدم من قبل.";
+if(p1.length<6)return e.textContent="كلمة المرور 6 أحرف على الأقل.";
+if(p1!==p2)return e.textContent="كلمتا المرور غير متطابقتين.";
+newUser(n,un,p1,first?"admin":"pending").then(function(u){return uSet(u).then(function(){
+if(first){me=u;setSess(un);if(DB&&!workers.length){lsGet(KEY).forEach(function(w){wSet(normW(w))})}view="home";render()}
+else{authView("login");var x=$("aErr");x.textContent="تم إنشاء الحساب. بعد موافقة المدير تقدر تسجّل الدخول من أي جهاز.";x.style.color="var(--ok)"}})}).catch(function(){e.textContent="المتصفح لا يدعم التشفير المطلوب."})}
 function hints(box){var f=fields(box);f.forEach(function(x,i){x.enterKeyHint=i<f.length-1?"next":"done"})}
 function fields(box){return [].slice.call(box.querySelectorAll("input:not([type=checkbox]):not([type=file]):not(:disabled),select")).filter(function(x){return !x.hidden&&x.offsetParent!==null})}
 function openDlg(id){var d=$(id);d.showModal();hints(d)}
@@ -306,7 +237,7 @@ if(me.role==="pending"){nav.hidden=true;a.innerHTML='<div class="card auth"><h1>
 nav.hidden=false;
 if(view==="users"&&!can("users"))view="home";
 document.querySelectorAll("nav button").forEach(function(b){b.setAttribute("aria-current",b.dataset.v===view);if(b.dataset.v==="users")b.hidden=!can("users")});
-var h="",L=sorted(),c={ok:0,warn:0,perm:0,term:0};L.forEach(function(w){c[info(w).st]++});
+var h="",L=sorted(),c={ok:0,warn:0,perm:0,term:0,ins:0};L.forEach(function(w){c[info(w).st]++;if(!w.ins)c.ins++});
 if(view==="home"){
 h+='<div class="head"><h1>متابعة العقود</h1><button id="outBtn">خروج</button></div><p class="sub">مرحباً، '+esc(me.name)+' · <span class="badge '+RCLS[me.role]+'">'+ROLES[me.role]+'</span> · '+workers.length+' عامل</p>';
 h+='<div class="stats"><div class="stat ok"><b>'+c.ok+'</b><span>ساري</span></div><div class="stat warn"><b>'+c.warn+'</b><span>ينتهي قريباً</span></div><div class="stat perm"><b>'+c.perm+'</b><span>عقود دائمة</span></div><div class="stat term"><b>'+c.term+'</b><span>تم إنهاء عقودهم</span></div></div>';
@@ -327,9 +258,9 @@ al.forEach(function(w){var i=info(w);h+='<button class="alert pick" data-open="'
 }
 if(view==="status"){
 h+='<h1>حالة العمال</h1><p class="sub">اختر الحالة، واضغط على العامل لفتح صفحته</p><div class="chips">';
-[["all","الكل",workers.length],["ok","ساري",c.ok],["warn","ينتهي قريباً",c.warn],["perm","عقود دائمة",c.perm],["term","تم إنهاء عقودهم",c.term]].forEach(function(f){h+='<button class="chip" data-f="'+f[0]+'" aria-pressed="'+(filter===f[0])+'">'+f[1]+' ('+f[2]+')</button>'});
+[["all","الكل",workers.length],["ok","ساري",c.ok],["warn","ينتهي قريباً",c.warn],["perm","عقود دائمة",c.perm],["term","تم إنهاء عقودهم",c.term],["ins","غير مسجل بالتأمينات",c.ins]].forEach(function(f){h+='<button class="chip" data-f="'+f[0]+'" aria-pressed="'+(filter===f[0])+'">'+f[1]+' ('+f[2]+')</button>'});
 h+='</div>';
-var items=L.filter(function(w){return filter==="all"||info(w).st===filter});
+var items=L.filter(function(w){return filter==="all"|| (filter==="ins"?!w.ins:info(w).st===filter)});
 if(!items.length)h+='<div class="empty">'+(workers.length?"لا يوجد عمال بهذه الحالة.":"لم تضف أي عامل بعد.")+'</div>';
 items.forEach(function(w){h+=rowBtn(w)});
 }
@@ -379,7 +310,7 @@ $("fDur").value=w?durList(w):"12";$("fAlert").value=w?w.alert:30;
 $("fNoIns").checked=w?!w.ins:true;$("fIns").value=w&&w.ins?w.ins:"";syncIns();
 $("fErr").textContent="";openDlg("addDlg")}
 $("saveBtn").onclick=function(){
-var n=$("fName").value.trim(),nid=norm($("fNid").value),s=$("fStart").value,ds=parseDurs($("fDur").value),al=parseInt($("fAlert").value,10),ins=$("fNoIns").checked?"":$("fIns").value,e=$("fErr");
+var n=$("fName").value.trim(),nid=norm($("fNid").value),s=$("fStart").value,ds=durOrDef($("fDur").value),al=parseInt($("fAlert").value,10),ins=$("fNoIns").checked?"":$("fIns").value,e=$("fErr");
 if(!n)return e.textContent="اكتب اسم العامل.";
 if(!/^\d{14}$/.test(nid))return e.textContent="الرقم القومي لازم يكون 14 رقماً.";
 if(workers.some(function(w){return w.nid===nid&&w.id!==editId}))return e.textContent="هذا الرقم القومي مسجّل لعامل آخر.";
@@ -461,7 +392,9 @@ function viaBrowser(data,name,mime,ok){var f=null;try{f=new File([data],name,{ty
 function dl(){var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data],{type:mime}));a.download=name;document.body.appendChild(a);a.click();a.remove();setMsg(ok)}
 if(f&&navigator.canShare&&navigator.canShare({files:[f]}))return navigator.share({files:[f]}).then(function(){setMsg(ok)}).catch(function(e){if(!e||e.name!=="AbortError")dl()});
 dl()}
-function deliver(data,name,mime,ok){viaBrowser(data,name,mime,ok)}
+function deliver(data,name,mime,ok){
+if(window.claude&&claude.use)return claude.use("downloads").then(function(d){if(!d)return viaBrowser(data,name,mime,ok);return d.save({filename:name,data:data}).then(function(){setMsg(ok)})}).catch(function(e){if(e&&e.code==="declined")return;setMsg("تعذّر حفظ الملف"+(e&&e.message?": "+e.message:"")+".")});
+viaBrowser(data,name,mime,ok)}
 function exportX(blank){
 if(!can(blank?"imp":"exp"))return;
 try{
@@ -470,7 +403,7 @@ if(!blank)sorted().forEach(function(w){var i=info(w);rows.push([w.name,w.nid,w.s
 if(!window.XLSX)return deliver(csvOf(rows),base+".csv","text/csv;charset=utf-8",ok+" (بصيغة CSV لأن مكتبة Excel لم تُحمَّل)");
 var ws=XLSX.utils.aoa_to_sheet(rows);ws["!cols"]=H.map(function(h,k){return{wch:k===0?24:k===1?18:k===3?26:22}});
 var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"العمال");
-if(blank)XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(["تعليمات تعبئة الملف","الاسم والرقم القومي (14 رقماً) وتاريخ بداية العقد ومدد العقود: حقول إلزامية.","تاريخ بداية العقد بصيغة 2023-03-01 أو 01/03/2023.","مدد العقود بالأشهر: العقد الأول ثم التجديدات بالترتيب، وكل مدة تبدأ تلقائياً بعد انتهاء التي قبلها.","مثال: 12 تعني عقداً واحداً لمدة 12 شهراً بدون تجديد.","مثال: عامل بدأ قبل 3 سنوات وجُدّد كل سنة: 12,12,12.","مثال: إذا كُتب 12,12 فقط لعامل بدأ قبل 3 سنوات، فالعقد انتهى دون تجديد ويصبح دائماً تلقائياً.","يمكن الفصل بين المدد بفاصلة أو مسافة أو فاصلة منقوطة.","تاريخ التسجيل في التأمينات وتاريخ فسخ العقد وتاريخ الإخراج من التأمينات: اختيارية. أيام الإنذار الافتراضية 30.","الأعمدة الأخيرة (الحالة وتاريخ الانتهاء وسنوات العمل) للعرض فقط ولا تُستورد."].map(function(l){return [l]})),"تعليمات");
+if(blank)XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(["تعليمات تعبئة الملف","الاسم والرقم القومي (14 رقماً) وتاريخ بداية العقد: حقول إلزامية.","تاريخ بداية العقد بصيغة 2023-03-01 أو 01/03/2023.","مدد العقود بالأشهر: العقد الأول ثم التجديدات بالترتيب، وكل مدة تبدأ تلقائياً بعد انتهاء التي قبلها.","مثال: 12 تعني عقداً واحداً لمدة 12 شهراً بدون تجديد.","إذا تُركت خانة مدد العقود فارغة يُعتبر العقد 12 شهراً بدون تجديد.","مثال: عامل بدأ قبل 3 سنوات وجُدّد كل سنة: 12,12,12.","مثال: إذا كُتب 12,12 فقط لعامل بدأ قبل 3 سنوات، فالعقد انتهى دون تجديد ويصبح دائماً تلقائياً.","يمكن الفصل بين المدد بفاصلة أو مسافة أو فاصلة منقوطة.","تاريخ التسجيل في التأمينات وتاريخ فسخ العقد وتاريخ الإخراج من التأمينات: اختيارية. أيام الإنذار الافتراضية 30.","الأعمدة الأخيرة (الحالة وتاريخ الانتهاء وسنوات العمل) للعرض فقط ولا تُستورد."].map(function(l){return [l]})),"تعليمات");
 wb.Workbook={Views:[{RTL:true}]};
 deliver(XLSX.write(wb,{bookType:"xlsx",type:"array"}),base+".xlsx","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",ok)
 }catch(err){setMsg("تعذّر إنشاء الملف: "+(err&&err.message||err))}}
@@ -481,7 +414,7 @@ if(!csv&&!window.XLSX)return setMsg("لقراءة ملفات xlsx يلزم ات�
 (csv?file.text().then(parseCsv):file.arrayBuffer().then(function(buf){var wb=XLSX.read(buf,{type:"array",cellDates:true});return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""})})).then(function(rs){
 var add=0,upd=0,bad=[],out=[];
 function pick(r,a,b){return r[a]!==undefined&&r[a]!==""?r[a]:r[b]}
-rs.forEach(function(r,k){var n=String(r[H[0]]).trim(),nid=norm(r[H[1]]),st=toIso(pick(r,H[2],"تاريخ العقد")),ds=parseDurs(pick(r,H[3],"مدة العقد (شهر)"));
+rs.forEach(function(r,k){var n=String(r[H[0]]).trim(),nid=norm(r[H[1]]),st=toIso(pick(r,H[2],"تاريخ العقد")),ds=durOrDef(pick(r,H[3],"مدة العقد (شهر)"));
 if(!n||!/^\d{14}$/.test(nid)||!st||!ds){bad.push(k+2);return}
 var b=build(st,ds),d={name:n,nid:nid,start:st,months:b.months,renewals:b.renewals,ins:toIso(r[H[4]]),alert:parseInt(norm(r[H[5]]),10)||30},tm=toIso(r[H[6]]),io=toIso(r[H[7]]),w=workers.filter(function(x){return x.nid===nid})[0]||out.filter(function(x){return x.nid===nid})[0];
 if(w){for(var f in d)w[f]=d[f];upd++}else{d.id=uid()+out.length;w=d;add++}
@@ -517,33 +450,6 @@ document.addEventListener("keydown",onEnter,true);document.addEventListener("key
 render();init();
 })();
 </script>
-
-<script>
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", async function () {
-    try {
-      const registration =
-        await navigator.serviceWorker.register("./sw.js");
-
-      registration.update();
-
-      let refreshing = false;
-
-      navigator.serviceWorker.addEventListener(
-        "controllerchange",
-        function () {
-          if (refreshing) return;
-          refreshing = true;
-          window.location.reload();
-        }
-      );
-
-    } catch (error) {
-      console.log("Update check failed:", error);
-    }
-  });
-}
-</script>
-
+<script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}</script>
 </body>
 </html>
