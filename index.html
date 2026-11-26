@@ -124,8 +124,7 @@ nav[hidden]{display:none}.auth{margin-top:8vh}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import {
   initializeFirestore,
-  persistentLocalCache,
-  persistentMultipleTabManager,
+  memoryLocalCache,
   collection,
   doc,
   setDoc,
@@ -220,7 +219,7 @@ function init(){
   setTimeout(function(){if(!ready){slow=true;render()}},8000);
   try{
     var app=initializeApp(firebaseConfig);
-    db=initializeFirestore(app,{localCache:persistentLocalCache({tabManager:persistentMultipleTabManager()})});
+    db=initializeFirestore(app,{localCache:memoryLocalCache()});
     startDb(db);
   }catch(e){
     cloudError="تعذّر الاتصال بقاعدة البيانات السحابية. لن يتم إنشاء حساب محلي بديل. أعد تحميل الصفحة بعد التحقق من الإنترنت.";slow=true;render();
